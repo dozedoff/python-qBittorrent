@@ -152,7 +152,10 @@ class Client(object):
         """
 
         STATUS_LIST = ['all', 'downloading', 'completed',
-                       'paused', 'active', 'inactive']
+                       'paused', 'active', 'inactive', 'error',
+					   'pausedUP', 'pausedDL', 'queuedUP', 'queuedDL',
+					   'uploading', 'stalledUP', 'stalledDL', 'checkingUP', 'checkingDL']
+
         if status not in STATUS_LIST:
             raise ValueError("Invalid status.")
 
