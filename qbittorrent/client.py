@@ -151,8 +151,9 @@ class Client(object):
         :return: list() of torrent with matching filter.
         """
 
-        STATUS_LIST = ['all', 'downloading', 'completed',
-                       'paused', 'active', 'inactive']
+        STATUS_LIST = ['all', 'downloading', 'seeding', 'completed',
+                       'paused', 'resumed', 'active', 'inactive']
+					   
         if status not in STATUS_LIST:
             raise ValueError("Invalid status.")
 
