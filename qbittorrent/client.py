@@ -136,8 +136,8 @@ class Client(object):
         """
         return self._get('command/shutdown')
 
-    def torrents(self, status='active', label='', sort='priority',
-                 reverse=False, limit=10, offset=0):
+    def torrents(self, status='all', label=None, sort=None,
+                 reverse=False, limit=None, offset=0):
         """
         Returns a list of torrents matching the supplied filters.
 
