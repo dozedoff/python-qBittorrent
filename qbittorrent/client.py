@@ -288,8 +288,9 @@ class Client(object):
         :return: Empty JSON data.
         """
         if not isinstance(link, list):
-            link = [link]
-        data = {'urls': link}
+            data = {'urls': link}
+        else:
+            data = {'urls': "\n".join(link)}
 
         if save_path:
             data.update({'savepath': save_path})
