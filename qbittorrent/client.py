@@ -135,6 +135,23 @@ class Client(object):
         Shutdown qBittorrent.
         """
         return self._get('command/shutdown')
+    
+    def get_all(self, status='all', label=None, sort=None,
+                 reverse=False, limit=None, offset=0):
+        """
+        Convenience function that calls 'torrents' with filter settings to return all torrents in the client.
+        If you have a lot of torrents, you should probably set a limit to avoid memory issues.
+
+        :param status: Current status of the torrents.
+        :param label: Fetch all torrents with the supplied label.
+        :param sort: Sort torrents by.
+        :param reverse: Enable reverse sorting.
+        :param limit: Limit the number of torrents returned.
+        :param offset: Set offset (if less than 0, offset from end).
+
+        :return: list() of torrent with matching filter.
+        """
+        return self.torrents(status, label, sort, reverse, limit, offset)
 
     def torrents(self, status='active', label='', sort='priority',
                  reverse=False, limit=10, offset=0):
