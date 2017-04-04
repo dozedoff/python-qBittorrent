@@ -62,11 +62,11 @@ Getting torrents
 
 - Filter torrents::
 
-    qb.torrents(status='downloading', label='my label')
+    qb.torrents(filter='downloading', category='my category')
     # This will return all torrents which are currently
-    # downloading and are labeled as ``my label``.
+    # downloading and are labeled as ``my category``.
 
-    qb.torrents(status='paused', sort='ratio')
+    qb.torrents(filter='paused', sort='ratio')
     # This will return all paused torrents sorted by their Leech:Seed ratio.
 
 Refer qBittorents WEB API documentation for all possible filters.
@@ -100,17 +100,17 @@ Downloading torrents
 - Specifing save path for downloads::
 
     dl_path = '/home/user/Downloads/special-dir/'
-    qb.download_from_file(myfile, save_path=dl_path)
+    qb.download_from_file(myfile, savepath=dl_path)
 
     # same for links.
-    qb.download_from_link(my_magnet_uri, save_path=dl_path)
+    qb.download_from_link(my_magnet_uri, savepath=dl_path)
 
 - Applying labels to downloads::
 
     qb.download_from_file(myfile, label='secret-files ;) ')
 
     # same for links.
-    qb.download_from_link(my_magnet_uri, label='anime')
+    qb.download_from_link(my_magnet_uri, category='anime')
 
 Pause / Resume torrents
 -----------------------
@@ -122,15 +122,15 @@ Pause / Resume torrents
 
 - Pausing/ Resuming a speicific torrent::
 
-    info_hash = 'e334ab9ddd91c10938a7a87875aa5d7fff526cb4'
+    info_hash = 'e334ab9ddd....infohash....5d7fff526cb4'
     qb.pause(info_hash)
     qb.resume(info_hash)
 
 - Pausing/ Resuming multiple torrents::
 
-    info_hash_list = ['e334ab9ddd91c10938a7a87875aa5d7fff526cb4',
-                      'c9dc36f46d90b0e2f2bfe02ce9ac0f490ebebc46',
-                      '4c859243615b106652a6e989d71fdf58b1f20108']
+    info_hash_list = ['e334ab9ddd9......infohash......fff526cb4',
+                      'c9dc36f46d9......infohash......90ebebc46',
+                      '4c859243615......infohash......8b1f20108']
 
     qb.pause_multiple(info_hash_list)
     qb.resume_multipe(info_hash_list)
@@ -152,7 +152,11 @@ Maintainer
 Contributors
 ------------
 
+*By chronological order*
+
 - `Matt Smith (psykzz) <https://github.com/psykzz>`__
+- `Nicolas Wright (dozedoff) <https://github.com/dozedoff>`__
+- `sbivol <https://github.com/sbivol>`__
 - Your name here :)
 
 TODO

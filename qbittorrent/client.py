@@ -16,9 +16,19 @@ class Client(object):
 
         session = requests.Session()
         check_prefs = session.get(url+'query/preferences')
+
         if check_prefs.status_code == 200:
             self._is_authenticated = True
             self.session = session
+
+        elif check_prefs.status_code == 404:
+            self._is_authenticated = False
+            raise RuntimeError("""
+                This wrapper only supports qBittorrent applications
+                 with version higher than 3.1.x.
+                 Please use the latest qBittorrent release.
+                """)
+
         else:
             self._is_authenticated = False
 
@@ -68,6 +78,7 @@ class Client(object):
             request = rq.post(final_url, data, **kwargs)
 
         request.raise_for_status()
+        request.encoding = 'utf_8'
 
         if len(request.text) == 0:
             data = json.loads('{}')
@@ -153,13 +164,12 @@ class Client(object):
         """
         return self.torrents(status, label, sort, reverse, limit, offset)
 
-    def torrents(self, status='active', label='', sort='priority',
-                 reverse=False, limit=10, offset=0):
+    def torrents(self, **filters):
         """
         Returns a list of torrents matching the supplied filters.
 
-        :param status: Current status of the torrents.
-        :param label: Fetch all torrents with the supplied label.
+        :param filter: Current status of the torrents.
+        :param category: Fetch all torrents with the supplied label.
         :param sort: Sort torrents by.
         :param reverse: Enable reverse sorting.
         :param limit: Limit the number of torrents returned.
@@ -167,21 +177,11 @@ class Client(object):
 
         :return: list() of torrent with matching filter.
         """
-
-        STATUS_LIST = ['all', 'downloading', 'seeding', 'completed',
-                       'paused', 'resumed', 'active', 'inactive']
-					   
-        if status not in STATUS_LIST:
-            raise ValueError("Invalid status.")
-
-        params = {
-            'filter': status,
-            'label': label,
-            'sort': sort,
-            'reverse': reverse,
-            'limit': limit,
-            'offset': offset
-        }
+        params = {}
+        for name, value in filters.items():
+            # make sure that old 'status' argument still works
+            name = 'filter' if name == 'status' else name
+            params[name] = value
 
         return self._get('query/torrents', params=params)
 
@@ -293,31 +293,34 @@ class Client(object):
         """
         return self._get('sync/maindata', params={'rid': rid})
 
-    def download_from_link(self, link,
-                           save_path=None, label=''):
+    def download_from_link(self, link, **kwargs):
         """
         Download torrent using a link.
 
         :param link: URL Link or list of.
-        :param save_path: Path to download the torrent.
-        :param label: Label of the torrent(s).
+        :param savepath: Path to download the torrent.
+        :param category: Label or Category of the torrent(s).
 
         :return: Empty JSON data.
         """
-        if not isinstance(link, list):
-            data = {'urls': link}
-        else:
-            data = {'urls': "\n".join(link)}
+        # old:new format
+        old_arg_map = {'save_path': 'savepath'}  # , 'label': 'category'}
 
-        if save_path:
-            data.update({'savepath': save_path})
-        if label:
-            data.update({'label': label})
+        # convert old option names to new option names
+        options = kwargs.copy()
+        for old_arg, new_arg in old_arg_map.items():
+            if options.get(old_arg) and not options.get(new_arg):
+                options[new_arg] = options[old_arg]
 
-        return self._post('command/download', data=data)
+        options['urls'] = link
 
-    def download_from_file(self, file_buffer,
-                           save_path=None, label=''):
+        # workaround to send multipart/formdata request
+        # http://stackoverflow.com/a/23131823/4726598
+        dummy_file = {'_dummy': (None, '_dummy')}
+
+        return self._post('command/download', data=options, files=dummy_file)
+
+    def download_from_file(self, file_buffer, **kwargs):
         """
         Download torrent using a file.
 
@@ -334,12 +337,10 @@ class Client(object):
         else:
             torrent_files = {'torrents': file_buffer}
 
-        data = {}
+        data = kwargs.copy()
 
-        if save_path:
-            data.update({'savepath': save_path})
-        if label:
-            data.update({'label': label})
+        if data.get('save_path'):
+            data.update({'savepath': data['save_path']})
         return self._post('command/upload', data=data, files=torrent_files)
 
     def add_trackers(self, infohash, trackers):
@@ -354,7 +355,7 @@ class Client(object):
         return self._post('command/addTrackers', data=data)
 
     @staticmethod
-    def process_infohash_list(infohash_list):
+    def _process_infohash_list(infohash_list):
         """
         Method to convert the infohash_list to qBittorrent API friendly values.
 
@@ -386,19 +387,29 @@ class Client(object):
 
         :param infohash_list: Single or list() of infohashes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         return self._post('command/pauseAll', data=data)
-		
+
     def set_label(self, infohash_list, label):
         """
         Set the label on multiple torrents.
+        IMPORTANT: OLD API method, kept as it is to avoid breaking stuffs.
 
         :param infohash_list: Single or list() of infohashes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         data['label'] = label
-
         return self._post('command/setLabel', data=data)
+
+    def set_category(self, infohash_list, category):
+        """
+        Set the category on multiple torrents.
+
+        :param infohash_list: Single or list() of infohashes.
+        """
+        data = self._process_infohash_list(infohash_list)
+        data['category'] = category
+        return self._post('command/setCategory', data=data)
 
     def resume(self, infohash):
         """
@@ -420,7 +431,7 @@ class Client(object):
 
         :param infohash_list: Single or list() of infohashes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         return self._post('command/resumeAll', data=data)
 
     def delete(self, infohash_list):
@@ -429,7 +440,7 @@ class Client(object):
 
         :param infohash_list: Single or list() of infohashes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         return self._post('command/delete', data=data)
 
     def delete_permanently(self, infohash_list):
@@ -438,7 +449,7 @@ class Client(object):
 
         :param infohash_list: Single or list() of infohashes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         return self._post('command/deletePerm', data=data)
 
     def recheck(self, infohash_list):
@@ -447,7 +458,7 @@ class Client(object):
 
         :param infohash_list: Single or list() of infohashes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         return self._post('command/recheck', data=data)
 
     def increase_priority(self, infohash_list):
@@ -456,7 +467,7 @@ class Client(object):
 
         :param infohash_list: Single or list() of infohashes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         return self._post('command/increasePrio', data=data)
 
     def decrease_priority(self, infohash_list):
@@ -465,7 +476,7 @@ class Client(object):
 
         :param infohash_list: Single or list() of infohashes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         return self._post('command/decreasePrio', data=data)
 
     def set_max_priority(self, infohash_list):
@@ -474,7 +485,7 @@ class Client(object):
 
         :param infohash_list: Single or list() of infohashes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         return self._post('command/topPrio', data=data)
 
     def set_min_priority(self, infohash_list):
@@ -483,7 +494,7 @@ class Client(object):
 
         :param infohash_list: Single or list() of infohashes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         return self._post('command/bottomPrio', data=data)
 
     def set_file_priority(self, infohash, file_id, priority):
@@ -548,7 +559,7 @@ class Client(object):
 
         :param infohash_list: Single or list() of infohashes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         return self._post('command/getTorrentsDlLimit', data=data)
 
     def set_torrent_download_limit(self, infohash_list, limit):
@@ -558,7 +569,7 @@ class Client(object):
         :param infohash_list: Single or list() of infohashes.
         :param limit: Speed limit in bytes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         data.update({'limit': limit})
         return self._post('command/setTorrentsDlLimit', data=data)
 
@@ -568,7 +579,7 @@ class Client(object):
 
         :param infohash_list: Single or list() of infohashes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         return self._post('command/getTorrentsUpLimit', data=data)
 
     def set_torrent_upload_limit(self, infohash_list, limit):
@@ -578,7 +589,7 @@ class Client(object):
         :param infohash_list: Single or list() of infohashes.
         :param limit: Speed limit in bytes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         data.update({'limit': limit})
         return self._post('command/setTorrentsUpLimit', data=data)
 
@@ -615,7 +626,7 @@ class Client(object):
 
         :param infohash_list: Single or list() of infohashes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         return self._post('command/toggleSequentialDownload', data=data)
 
     def toggle_first_last_piece_priority(self, infohash_list):
@@ -624,7 +635,7 @@ class Client(object):
 
         :param infohash_list: Single or list() of infohashes.
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         return self._post('command/toggleFirstLastPiecePrio', data=data)
 
     def force_start(self, infohash_list, value=True):
@@ -634,6 +645,6 @@ class Client(object):
         :param infohash_list: Single or list() of infohashes.
         :param value: Force start value (bool)
         """
-        data = self.process_infohash_list(infohash_list)
+        data = self._process_infohash_list(infohash_list)
         data.update({'value': json.dumps(value)})
         return self._post('command/setForceStart', data=data)
