@@ -162,7 +162,7 @@ class Client(object):
 
         :return: list() of torrent with matching filter.
         """
-        return self.torrents(status, label, sort, reverse, limit, offset)
+        return self.torrents(status=status, category=label, sort=sort, reverse=reverse, limit=limit, offset=offset)
 
     def torrents(self, **filters):
         """
