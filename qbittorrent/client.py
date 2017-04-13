@@ -1,5 +1,6 @@
 import requests
 import json
+from _collections_abc import Iterable
 
 
 class LoginRequired(Exception):
@@ -312,7 +313,11 @@ class Client(object):
             if options.get(old_arg) and not options.get(new_arg):
                 options[new_arg] = options[old_arg]
 
-        options['urls'] = link
+        if not isinstance(link, str) and isinstance(link, Iterable):
+            url_list = list(link)
+            options['urls'] = '\n'.join(url_list)
+        else:
+            options['urls'] = link
 
         # workaround to send multipart/formdata request
         # http://stackoverflow.com/a/23131823/4726598
