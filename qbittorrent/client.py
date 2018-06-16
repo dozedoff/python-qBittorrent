@@ -378,7 +378,7 @@ class Client(object):
 
         :param infohash: INFO HASH of torrent.
         """
-        return self._post('command/pause', data={'hash': infohash.lower()})
+        return self._post('command/pause', data={'hashes': infohash.lower()})
 
     def pause_all(self):
         """
