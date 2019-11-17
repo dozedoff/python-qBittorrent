@@ -653,3 +653,20 @@ class Client(object):
         data = self._process_infohash_list(infohash_list)
         data.update({'value': json.dumps(value)})
         return self._post('command/setForceStart', data=data)
+
+    def add_tag(self, infohash_list, tags):
+        """
+        Add the tags to each torrent.
+
+        :param infohash_list: Single or list() of torrent hashes.
+        :param tags: Single or list of tags
+        """
+
+        data = self._process_infohash_list(infohash_list)
+
+        if isinstance(tags, list):
+            data.update({'tags': ','.join([t for t in tags])})
+        else:
+            data.update({'tags': tags})
+
+        return self._post('command/addTags', data=data)
