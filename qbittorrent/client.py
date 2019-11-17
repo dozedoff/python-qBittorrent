@@ -21,6 +21,7 @@ class Client(object):
         if check_prefs.status_code == 200:
             self._is_authenticated = True
             self.session = session
+            self.session.headers.update({'Referer': url})
 
         elif check_prefs.status_code == 404:
             self._is_authenticated = False
