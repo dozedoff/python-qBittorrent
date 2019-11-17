@@ -313,9 +313,8 @@ class Client(object):
             if options.get(old_arg) and not options.get(new_arg):
                 options[new_arg] = options[old_arg]
 
-        if not isinstance(link, str) and isinstance(link, Iterable):
-            url_list = list(link)
-            options['urls'] = '\n'.join(url_list)
+        if type(link) is list:
+            options['urls'] = "\n".join(link)
         else:
             options['urls'] = link
 
