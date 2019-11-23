@@ -348,15 +348,15 @@ class Client(object):
             data.update({'savepath': data['save_path']})
         return self._post('command/upload', data=data, files=torrent_files)
 
-    def add_trackers(self, infohash, trackers):
+    def add_trackers(self, infohash, tracker_list):
         """
         Add trackers to a torrent.
 
         :param infohash: INFO HASH of torrent.
-        :param trackers: Trackers.
+        :param tracker_list: Trackers in a list
         """
         data = {'hash': infohash.lower(),
-                'urls': trackers}
+                'urls': '\n'.join(tracker_list)}
         return self._post('command/addTrackers', data=data)
 
     @staticmethod
